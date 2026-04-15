@@ -1,0 +1,14 @@
+{
+  "name": "hackernews",
+  "display_name": "Hacker News MCP",
+  "description": "Fetch stories, search content, and read threads from Hacker News. Uses the official HN Firebase API and Algolia search — no API key required.",
+  "version": "1.0.0",
+  "author": "Attilio81",
+  "repository": "https://github.com/Attilio81/MCP-HackerNews",
+  "mcpServers": {
+    "hackernews": {
+      "command": "python3",
+      "args": ["${PLUGIN_DIR}/server.py"]
+    }
+  }
+}
