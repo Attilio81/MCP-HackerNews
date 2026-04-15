@@ -129,6 +129,17 @@ hn_get_user(username="pg")
 - **Stories & Items**: [HN Firebase API](https://github.com/HackerNews/API) — official, no key needed
 - **Search**: [Algolia HN Search](https://hn.algolia.com/api) — free, no key needed
 
+## Scheduled Tasks & Automation
+
+Want to run HN digests, AI reports, or alerts automatically every morning?
+
+→ See [**guida-schedule-hackernews.md**](guida-schedule-hackernews.md) for a full guide on creating scheduled tasks with the Cowork scheduler that use this MCP server.
+
+Examples covered:
+- Daily AI digest saved as markdown
+- Show HN alert filtered by score
+- Weekly best-of-AI HTML report
+
 ## License
 
 MIT
