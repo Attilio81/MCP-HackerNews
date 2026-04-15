@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HN // Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0b0b0b;
+  --bg2:       #111111;
+  --bg3:       #181818;
+  --border:    #2a2a2a;
+  --border2:   #3a3a3a;
+  --amber:     #ff6600;
+  --amber2:    #e85500;
+  --amber-dim: #7a3000;
+  --amber-glow:rgba(255,102,0,0.15);
+  --amber-glow2:rgba(255,102,0,0.08);
+  --text:      #d4c5a9;
+  --text2:     #8a7a65;
+  --text3:     #4a3f33;
+  --green:     #4ade80;
+  --red:       #f87171;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* CRT scanlines overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Subtle vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.5) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--amber-dim); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--amber); }
+
+/* ─── Header ───────────────────────────────────────────────── */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+
+.header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 52px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logo-box {
+  width: 28px;
+  height: 28px;
+  background: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #000;
+  letter-spacing: -0.5px;
+  box-shadow: 0 0 12px var(--amber-glow), 0 0 24px var(--amber-glow2);
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+
+/* ─── Nav tabs ─────────────────────────────────────────────── */
+nav {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+}
+nav::-webkit-scrollbar { display: none; }
+
+.tab {
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+  position: relative;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--amber);
+  background: var(--amber-glow2);
+}
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber);
+}
+
+/* Search button in header */
+.btn-search-toggle {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text2);
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-search-toggle:hover, .btn-search-toggle.active {
+  color: var(--amber);
+  border-color: var(--amber);
+  box-shadow: 0 0 8px var(--amber-glow);
+}
+
+/* ─── Main layout ──────────────────────────────────────────── */
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+}
+
+/* ─── Search panel ─────────────────────────────────────────── */
+.search-panel {
+  margin-bottom: 20px;
+  display: none;
+  animation: slideDown 0.2s ease;
+}
+.search-panel.open { display: block; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-input::placeholder { color: var(--text3); }
+.search-input:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 12px var(--amber-glow);
+}
+
+.search-btn {
+  padding: 10px 18px;
+  background: var(--amber);
+  color: #000;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.search-btn:hover {
+  background: #ff7722;
+  box-shadow: 0 0 16px var(--amber-glow);
+}
+
+.search-filters {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text2);
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filter-chip:hover { color: var(--text); border-color: var(--border2); }
+.filter-chip.active { color: var(--amber); border-color: var(--amber); background: var(--amber-glow2); }
+
+/* Sort toggle */
+.sort-chip {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text2);
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+.sort-chip:hover { color: var(--text); border-color: var(--border2); }
+.sort-chip.date-mode { color: var(--green); border-color: var(--green); background: rgba(74,222,128,0.08); }
+
+/* ─── Status bar ───────────────────────────────────────────── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text3);
+  animation: pulse 2s infinite;
+}
+.status-dot.loading { background: var(--amber); animation: pulse 0.5s infinite; }
+.status-dot.done    { background: var(--green); animation: none; }
+.status-dot.error   { background: var(--red); animation: none; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ─── Story list ───────────────────────────────────────────── */
+.story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.story-item {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 0;
+  background: var(--bg);
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+  cursor: pointer;
+  animation: fadeIn 0.3s ease both;
+}
+.story-item:hover {
+  border-color: var(--border);
+  background: var(--bg2);
+}
+.story-item:hover .story-score {
+  color: var(--amber);
+  text-shadow: 0 0 8px var(--amber-glow);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.story-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  border-right: 1px solid var(--border);
+  color: var(--text2);
+  transition: color 0.15s, text-shadow 0.15s;
+  flex-shrink: 0;
+}
+.score-num {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.score-label {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.story-body {
+  padding: 10px 14px;
+  min-width: 0;
+}
+
+.story-title {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text);
+  word-break: break-word;
+  margin-bottom: 4px;
+  text-decoration: none;
+}
+.story-item:hover .story-title { color: #fff; }
+
+.story-domain {
+  font-size: 10px;
+  color: var(--amber-dim);
+  letter-spacing: 0.3px;
+}
+
+.story-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.3px;
+}
+
+.meta-item { display: flex; align-items: center; gap: 4px; }
+.meta-icon { opacity: 0.6; }
+
+.meta-author {
+  color: var(--text2);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.meta-author:hover { color: var(--amber); }
+
+.meta-comments { cursor: pointer; transition: color 0.15s; }
+.meta-comments:hover { color: var(--text); }
+
+/* Story text (Ask HN) */
+.story-text {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.5;
+  border-left: 2px solid var(--amber-dim);
+  padding-left: 10px;
+  font-style: italic;
+  /* strip HTML tags visually */
+}
+.story-text * { all: revert; font-family: var(--font-mono); font-size: 11px; color: var(--text2); }
+
+/* ─── Comments panel ───────────────────────────────────────── */
+.comments-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(500px, 100vw);
+  height: 100vh;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+}
+.comments-panel.open { transform: translateX(0); }
+
+.comments-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.comments-close {
+  margin-left: auto;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.comments-close:hover { color: var(--amber); border-color: var(--amber); }
+
+.comments-title {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+.comments-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 12px 20px;
+}
+
+.comment-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn 0.2s ease both;
+}
+.comment-item:last-child { border-bottom: none; }
+
+.comment-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--text3);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+.comment-author { color: var(--amber-dim); cursor: pointer; }
+.comment-author:hover { color: var(--amber); }
+
+.comment-text {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+.comment-text * { all: revert; font-family: var(--font-mono); font-size: 12px; color: var(--text2); line-height: 1.6; }
+.comment-text a { color: var(--amber-dim); }
+.comment-text a:hover { color: var(--amber); }
+.comment-text p { margin-bottom: 6px; }
+
+.comment-replies {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 6px;
+  letter-spacing: 0.3px;
+}
+
+/* ─── User modal ───────────────────────────────────────────── */
+.user-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0,0,0,0.7);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.user-modal.open { opacity: 1; pointer-events: all; }
+
+.user-card {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  padding: 24px 28px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 0 40px rgba(0,0,0,0.8), 0 0 80px var(--amber-glow2);
+  animation: scaleIn 0.2s ease;
+}
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.user-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  color: #000;
+  flex-shrink: 0;
+  box-shadow: 0 0 16px var(--amber-glow);
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--amber);
+}
+.user-hn-link {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  margin-top: 2px;
+  display: block;
+}
+.user-hn-link:hover { color: var(--amber); }
+
+.user-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+}
+.stat-val {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--amber);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text3);
+  margin-top: 3px;
+}
+
+.user-about {
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: var(--bg3);
+  border-left: 2px solid var(--amber-dim);
+}
+.user-about * { all: revert; font-family: var(--font-mono); font-size: 11px; color: var(--text2); }
+.user-about a { color: var(--amber-dim); }
+
+.user-card-close {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.user-card-close:hover { color: var(--amber); border-color: var(--amber); }
+
+/* ─── Load more ────────────────────────────────────────────── */
+.load-more-row {
+  margin-top: 20px;
+  text-align: center;
+}
+.btn-load-more {
+  padding: 10px 28px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-load-more:hover { color: var(--amber); border-color: var(--amber); box-shadow: 0 0 12px var(--amber-glow); }
+.btn-load-more:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ─── Empty / error state ──────────────────────────────────── */
+.empty-state {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text3);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+.empty-state .big { font-size: 24px; color: var(--border2); margin-bottom: 8px; }
+
+/* ─── Skeleton loader ──────────────────────────────────────── */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.skel-item {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  height: 70px;
+  background: var(--bg2);
+  border: 1px solid transparent;
+  overflow: hidden;
+  animation: shimmer 1.5s infinite;
+}
+.skel-score { border-right: 1px solid var(--border); }
+.skel-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.skel-line {
+  height: 8px;
+  background: var(--border);
+  border-radius: 2px;
+}
+.skel-line.w80 { width: 80%; }
+.skel-line.w50 { width: 50%; }
+.skel-line.w30 { width: 30%; }
+
+@keyframes shimmer {
+  0%   { opacity: 0.5; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* ─── Footer ───────────────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 12px 24px;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text3);
+  position: relative;
+}
+footer span { color: var(--amber-dim); }
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 600px) {
+  main { padding: 12px 12px 40px; }
+  header { padding: 0 12px; }
+  .story-score { padding: 12px 6px; }
+  .score-num { font-size: 13px; }
+  .story-title { font-size: 13px; }
+  .comments-panel { width: 100vw; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─────────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <a href="#" class="logo" onclick="return false;">
+      <div class="logo-box">Y</div>
+      <span class="logo-text">Terminal</span>
+    </a>
+
+    <nav id="tabs">
+      <button class="tab active" data-type="top">Top</button>
+      <button class="tab" data-type="new">New</button>
+      <button class="tab" data-type="best">Best</button>
+      <button class="tab" data-type="ask">Ask</button>
+      <button class="tab" data-type="show">Show</button>
+      <button class="tab" data-type="job">Jobs</button>
+    </nav>
+
+    <button class="btn-search-toggle" id="searchToggle">⌕ Search</button>
+  </div>
+</header>
+
+<!-- ─── MAIN ───────────────────────────────────────────────── -->
+<main>
+
+  <!-- Search panel -->
+  <div class="search-panel" id="searchPanel">
+    <div class="search-row">
+      <input class="search-input" id="searchInput" type="text" placeholder="search hacker news..." autocomplete="off" spellcheck="false">
+      <button class="search-btn" id="searchBtn">Search</button>
+    </div>
+    <div class="search-filters">
+      <button class="filter-chip active" data-tag="story">Stories</button>
+      <button class="filter-chip" data-tag="comment">Comments</button>
+      <button class="filter-chip" data-tag="ask_hn">Ask HN</button>
+      <button class="filter-chip" data-tag="show_hn">Show HN</button>
+      <button class="filter-chip" data-tag="job">Jobs</button>
+      <button class="sort-chip" id="sortChip">⏱ By Date</button>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">ready</span>
+  </div>
+
+  <!-- Story list -->
+  <div id="storyList" class="story-list"></div>
+
+  <!-- Load more -->
+  <div class="load-more-row" id="loadMoreRow" style="display:none;">
+    <button class="btn-load-more" id="loadMoreBtn">Load More</button>
+  </div>
+
+</main>
+
+<!-- ─── FOOTER ─────────────────────────────────────────────── -->
+<footer>
+  <span>HN Terminal</span> // data via firebase + algolia // no api key required
+</footer>
+
+<!-- ─── COMMENTS PANEL ─────────────────────────────────────── -->
+<div class="comments-panel" id="commentsPanel">
+  <div class="comments-header">
+    <div style="flex:1;min-width:0;">
+      <div class="comments-title" id="commentsPanelTitle">—</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;" id="commentsPanelMeta"></div>
+    </div>
+    <button class="comments-close" id="commentsClose">✕ Close</button>
+  </div>
+  <div class="comments-body" id="commentsBody">
+    <div class="empty-state"><div class="big">◌</div>loading...</div>
+  </div>
+</div>
+
+<!-- ─── USER MODAL ─────────────────────────────────────────── -->
+<div class="user-modal" id="userModal">
+  <div class="user-card" id="userCard">
+    <div class="user-card-header">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <div>
+        <div class="user-name" id="userName">—</div>
+        <a class="user-hn-link" id="userHnLink" href="#" target="_blank">view on hn ↗</a>
+      </div>
+    </div>
+    <div class="user-stats" id="userStats"></div>
+    <div class="user-about" id="userAbout" style="display:none;"></div>
+    <button class="user-card-close" id="userModalClose">Close</button>
+  </div>
+</div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────
+const HN_BASE   = 'https://hacker-news.firebaseio.com/v0';
+const ALGOLIA   = 'https://hn.algolia.com/api/v1';
+const HN_ITEM   = id => `https://news.ycombinator.com/item?id=${id}`;
+const HN_USER   = id => `https://news.ycombinator.com/user?id=${id}`;
+
+const ENDPOINTS = {
+  top:  'topstories',
+  new:  'newstories',
+  best: 'beststories',
+  ask:  'askstories',
+  show: 'showstories',
+  job:  'jobstories',
+};
+
+// ─── State ────────────────────────────────────────────────────
+const state = {
+  mode:        'feed',     // 'feed' | 'search'
+  feedType:    'top',
+  storyIds:    [],
+  page:        0,
+  pageSize:    20,
+  loading:     false,
+  searchTag:   'story',
+  searchSort:  'relevance',
+  searchQuery: '',
+  searchPage:  0,
+  searchTotal: 0,
+};
+
+// ─── Helpers ──────────────────────────────────────────────────
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function formatTime(ts) {
+  if (!ts) return '?';
+  const d = new Date(typeof ts === 'number' ? ts * 1000 : ts);
+  const now = Date.now();
+  const diff = Math.floor((now - d.getTime()) / 1000);
+  if (diff < 60)   return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400)return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+function domain(url) {
+  if (!url) return null;
+  try { return new URL(url).hostname.replace(/^www\./,''); }
+  catch { return null; }
+}
+
+function stripHTML(html) {
+  if (!html) return '';
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return d.textContent || d.innerText || '';
+}
+
+// ─── Status ───────────────────────────────────────────────────
+function setStatus(msg, state) {
+  document.getElementById('statusText').textContent = msg;
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (state ? ' '+state : '');
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────
+function renderSkeleton(count = 8) {
+  return Array.from({length: count}, () => `
+    <div class="skel-item">
+      <div class="skel-score"></div>
+      <div class="skel-body">
+        <div class="skel-line w80"></div>
+        <div class="skel-line w50"></div>
+        <div class="skel-line w30"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── Story card ───────────────────────────────────────────────
+function storyCard(item, index = 0) {
+  const score   = item.score || 0;
+  const title   = item.title || '(no title)';
+  const url     = item.url;
+  const hnUrl   = HN_ITEM(item.id);
+  const by      = item.by || 'unknown';
+  const time    = formatTime(item.time);
+  const comts   = item.descendants ?? item.num_comments ?? 0;
+  const dom     = domain(url);
+  const hasText = item.text && stripHTML(item.text).length > 0;
+  const snippet = hasText ? stripHTML(item.text).slice(0, 200) + (stripHTML(item.text).length > 200 ? '…' : '') : null;
+
+  return `
+    <div class="story-item" style="animation-delay:${index * 0.03}s"
+         data-id="${item.id}"
+         data-url="${url || hnUrl}"
+         data-hn-url="${hnUrl}">
+      <div class="story-score">
+        <div class="score-num">${score}</div>
+        <div class="score-label">pts</div>
+      </div>
+      <div class="story-body">
+        <div class="story-title">${escHTML(title)}</div>
+        ${dom ? `<div class="story-domain">${escHTML(dom)}</div>` : ''}
+        ${snippet ? `<div class="story-text">${escHTML(snippet)}</div>` : ''}
+        <div class="story-meta">
+          <span class="meta-item">
+            <span class="meta-icon">◉</span>
+            <span class="meta-author" data-user="${escHTML(by)}">@${escHTML(by)}</span>
+          </span>
+          <span class="meta-item">
+            <span class="meta-icon">⏱</span>
+            <span>${time}</span>
+          </span>
+          ${comts > 0 ? `
+          <span class="meta-item">
+            <span class="meta-icon">◎</span>
+            <span class="meta-comments" data-id="${item.id}">${comts} comments</span>
+          </span>` : ''}
+          <span class="meta-item" style="margin-left:auto;">
+            <a href="${hnUrl}" target="_blank" onclick="event.stopPropagation()"
+               style="color:var(--text3);text-decoration:none;font-size:9px;letter-spacing:0.5px;">HN ↗</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function escHTML(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ─── Feed loading ─────────────────────────────────────────────
+async function loadFeed(type, reset = true) {
+  if (state.loading) return;
+  state.loading = true;
+  state.mode    = 'feed';
+  state.feedType= type;
+
+  const list = document.getElementById('storyList');
+  const loadMoreRow = document.getElementById('loadMoreRow');
+
+  if (reset) {
+    state.page = 0;
+    list.innerHTML = `<div class="skeleton">${renderSkeleton(8)}</div>`;
+    loadMoreRow.style.display = 'none';
+    setStatus(`fetching ${type} stories…`, 'loading');
+  } else {
+    setStatus('loading more…', 'loading');
+  }
+
+  try {
+    if (reset || state.storyIds.length === 0) {
+      state.storyIds = await fetchJSON(`${HN_BASE}/${ENDPOINTS[type]}.json`);
+    }
+
+    const start = state.page * state.pageSize;
+    const end   = start + state.pageSize;
+    const ids   = state.storyIds.slice(start, end);
+
+    if (!ids.length) {
+      if (reset) list.innerHTML = '<div class="empty-state"><div class="big">◌</div>no stories found</div>';
+      state.loading = false;
+      return;
+    }
+
+    const items = await Promise.all(
+      ids.map(id => fetchJSON(`${HN_BASE}/item/${id}.json`).catch(() => null))
+    );
+    const stories = items.filter(x => x && (x.type === 'story' || x.type === 'job' || x.type === 'poll'));
+
+    if (reset) {
+      list.innerHTML = stories.map((s,i) => storyCard(s,i)).join('');
+    } else {
+      const offset = start;
+      list.insertAdjacentHTML('beforeend', stories.map((s,i) => storyCard(s, offset+i)).join(''));
+    }
+
+    state.page++;
+    const hasMore = end < state.storyIds.length;
+    loadMoreRow.style.display = hasMore ? 'block' : 'none';
+    setStatus(`${Math.min(end, state.storyIds.length)} / ${state.storyIds.length} stories`, 'done');
+
+  } catch(err) {
+    if (reset) list.innerHTML = `<div class="empty-state"><div class="big">✕</div>${escHTML(err.message)}</div>`;
+    setStatus('error — check console', 'error');
+    console.error(err);
+  }
+
+  state.loading = false;
+}
+
+// ─── Search ───────────────────────────────────────────────────
+async function runSearch(reset = true) {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+
+  if (state.loading) return;
+  state.loading     = true;
+  state.mode        = 'search';
+  state.searchQuery = q;
+
+  const list = document.getElementById('storyList');
+  const loadMoreRow = document.getElementById('loadMoreRow');
+
+  if (reset) {
+    state.searchPage = 0;
+    list.innerHTML = `<div class="skeleton">${renderSkeleton(6)}</div>`;
+    loadMoreRow.style.display = 'none';
+    setStatus(`searching "${q}"…`, 'loading');
+  } else {
+    setStatus('loading more results…', 'loading');
+  }
+
+  try {
+    const endpoint = state.searchSort === 'date' ? 'search_by_date' : 'search';
+    const url = `${ALGOLIA}/${endpoint}?query=${encodeURIComponent(q)}&tags=${state.searchTag}&hitsPerPage=20&page=${state.searchPage}`;
+    const data = await fetchJSON(url);
+    const hits = data.hits || [];
+    state.searchTotal = data.nbHits || 0;
+
+    if (reset && !hits.length) {
+      list.innerHTML = `<div class="empty-state"><div class="big">◌</div>no results for "${escHTML(q)}"</div>`;
+      setStatus('0 results', 'done');
+      state.loading = false;
+      return;
+    }
+
+    const cards = hits.map((h, i) => {
+      const id = h.objectID || h.story_id;
+      const normalized = {
+        id:          id,
+        title:       h.title || h.story_title || '(comment)',
+        url:         h.url || HN_ITEM(id),
+        by:          h.author || 'unknown',
+        time:        h.created_at,
+        score:       h.points || 0,
+        descendants: h.num_comments || 0,
+        text:        h.comment_text || h.story_text || null,
+      };
+      return storyCard(normalized, i + (reset ? 0 : state.searchPage * 20));
+    });
+
+    if (reset) {
+      list.innerHTML = cards.join('');
+    } else {
+      list.insertAdjacentHTML('beforeend', cards.join(''));
+    }
+
+    state.searchPage++;
+    const shown = state.searchPage * 20;
+    const hasMore = shown < state.searchTotal;
+    loadMoreRow.style.display = hasMore ? 'block' : 'none';
+    setStatus(`${Math.min(shown, state.searchTotal)} / ${state.searchTotal} results`, 'done');
+
+  } catch(err) {
+    if (reset) list.innerHTML = `<div class="empty-state"><div class="big">✕</div>${escHTML(err.message)}</div>`;
+    setStatus('search error', 'error');
+    console.error(err);
+  }
+
+  state.loading = false;
+}
+
+// ─── Comments ─────────────────────────────────────────────────
+async function openComments(itemId) {
+  const panel = document.getElementById('commentsPanel');
+  const body  = document.getElementById('commentsBody');
+  const title = document.getElementById('commentsPanelTitle');
+  const meta  = document.getElementById('commentsPanelMeta');
+
+  panel.classList.add('open');
+  body.innerHTML = `<div class="empty-state"><div class="big" style="animation:pulse 1s infinite">◌</div>loading…</div>`;
+  title.textContent = '…';
+  meta.textContent  = '';
+
+  try {
+    const item = await fetchJSON(`${HN_BASE}/item/${itemId}.json`);
+    title.textContent = item.title || '(no title)';
+    meta.textContent  = `by @${item.by} · ${formatTime(item.time)} · ${item.descendants || 0} comments`;
+
+    const kids = (item.kids || []).slice(0, 10);
+    if (!kids.length) {
+      body.innerHTML = '<div class="empty-state"><div class="big">◌</div>no comments yet</div>';
+      return;
+    }
+
+    body.innerHTML = `<div class="empty-state"><div class="big" style="animation:pulse 0.5s infinite">◌</div>fetching ${kids.length} comments…</div>`;
+
+    const comments = await Promise.all(
+      kids.map(id => fetchJSON(`${HN_BASE}/item/${id}.json`).catch(() => null))
+    );
+
+    const valid = comments.filter(c => c && !c.deleted && !c.dead);
+    if (!valid.length) {
+      body.innerHTML = '<div class="empty-state"><div class="big">◌</div>all comments deleted</div>';
+      return;
+    }
+
+    body.innerHTML = valid.map((c, i) => `
+      <div class="comment-item" style="animation-delay:${i*0.05}s">
+        <div class="comment-meta">
+          <span class="comment-author" data-user="${escHTML(c.by || '')}" >@${escHTML(c.by || 'unknown')}</span>
+          <span>${formatTime(c.time)}</span>
+          ${c.kids?.length ? `<span>↳ ${c.kids.length} replies</span>` : ''}
+        </div>
+        <div class="comment-text">${c.text || '(empty)'}</div>
+        ${c.kids?.length ? `<div class="comment-replies">+ ${c.kids.length} replies</div>` : ''}
+      </div>
+    `).join('');
+
+  } catch(err) {
+    body.innerHTML = `<div class="empty-state"><div class="big">✕</div>${escHTML(err.message)}</div>`;
+  }
+}
+
+// ─── User profile ─────────────────────────────────────────────
+async function openUser(username) {
+  const modal   = document.getElementById('userModal');
+  const avatar  = document.getElementById('userAvatar');
+  const nameEl  = document.getElementById('userName');
+  const linkEl  = document.getElementById('userHnLink');
+  const stats   = document.getElementById('userStats');
+  const aboutEl = document.getElementById('userAbout');
+
+  modal.classList.add('open');
+  avatar.textContent  = '…';
+  nameEl.textContent  = username;
+  stats.innerHTML     = '';
+  aboutEl.style.display = 'none';
+  linkEl.href = HN_USER(username);
+
+  try {
+    const user = await fetchJSON(`${HN_BASE}/user/${username}.json`);
+    if (!user) { nameEl.textContent = username + ' (not found)'; return; }
+
+    avatar.textContent = username[0].toUpperCase();
+    nameEl.textContent = user.id;
+
+    const created = user.created
+      ? new Date(user.created * 1000).getFullYear()
+      : '?';
+
+    stats.innerHTML = `
+      <div class="stat-box">
+        <div class="stat-val">${(user.karma || 0).toLocaleString()}</div>
+        <div class="stat-label">Karma</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${created}</div>
+        <div class="stat-label">Member since</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${(user.submitted || []).length.toLocaleString()}</div>
+        <div class="stat-label">Submissions</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${Math.floor((Date.now()/1000 - (user.created||Date.now()/1000)) / 86400 / 365)}</div>
+        <div class="stat-label">Years old</div>
+      </div>
+    `;
+
+    if (user.about) {
+      aboutEl.innerHTML = user.about;
+      aboutEl.style.display = 'block';
+    }
+
+  } catch(err) {
+    nameEl.textContent = username + ' — error loading';
+    console.error(err);
+  }
+}
+
+// ─── Event wiring ─────────────────────────────────────────────
+
+// Tabs
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // close search if open
+  document.getElementById('searchPanel').classList.remove('open');
+  document.getElementById('searchToggle').classList.remove('active');
+  loadFeed(btn.dataset.type, true);
+});
+
+// Search toggle
+document.getElementById('searchToggle').addEventListener('click', () => {
+  const panel  = document.getElementById('searchPanel');
+  const toggle = document.getElementById('searchToggle');
+  const open   = panel.classList.toggle('open');
+  toggle.classList.toggle('active', open);
+  if (open) document.getElementById('searchInput').focus();
+});
+
+// Search input
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runSearch(true);
+});
+document.getElementById('searchBtn').addEventListener('click', () => runSearch(true));
+
+// Search filter chips
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    state.searchTag = chip.dataset.tag;
+    if (state.mode === 'search' && state.searchQuery) runSearch(true);
+  });
+});
+
+// Sort chip
+document.getElementById('sortChip').addEventListener('click', () => {
+  const chip = document.getElementById('sortChip');
+  if (state.searchSort === 'relevance') {
+    state.searchSort = 'date';
+    chip.classList.add('date-mode');
+    chip.textContent = '⚡ By Relevance';
+  } else {
+    state.searchSort = 'relevance';
+    chip.classList.remove('date-mode');
+    chip.textContent = '⏱ By Date';
+  }
+  if (state.mode === 'search' && state.searchQuery) runSearch(true);
+});
+
+// Story list clicks
+document.getElementById('storyList').addEventListener('click', e => {
+  // Author click
+  const author = e.target.closest('[data-user]');
+  if (author && author.dataset.user) {
+    e.stopPropagation();
+    openUser(author.dataset.user);
+    return;
+  }
+
+  // Comments click
+  const comBtn = e.target.closest('.meta-comments');
+  if (comBtn && comBtn.dataset.id) {
+    e.stopPropagation();
+    openComments(comBtn.dataset.id);
+    return;
+  }
+
+  // Story click → open URL
+  const card = e.target.closest('.story-item');
+  if (card) {
+    const url = card.dataset.url;
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+});
+
+// Load more
+document.getElementById('loadMoreBtn').addEventListener('click', () => {
+  if (state.mode === 'feed') {
+    loadFeed(state.feedType, false);
+  } else {
+    runSearch(false);
+  }
+});
+
+// Comments panel close
+document.getElementById('commentsClose').addEventListener('click', () => {
+  document.getElementById('commentsPanel').classList.remove('open');
+});
+
+// User modal close
+document.getElementById('userModalClose').addEventListener('click', () => {
+  document.getElementById('userModal').classList.remove('open');
+});
+document.getElementById('userModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('userModal')) {
+    document.getElementById('userModal').classList.remove('open');
+  }
+});
+
+// User click in comments panel
+document.getElementById('commentsBody').addEventListener('click', e => {
+  const author = e.target.closest('[data-user]');
+  if (author && author.dataset.user) openUser(author.dataset.user);
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('commentsPanel').classList.remove('open');
+    document.getElementById('userModal').classList.remove('open');
+  }
+  if ((e.key === '/' || e.key === 'k') && e.target.tagName !== 'INPUT') {
+    e.preventDefault();
+    const panel  = document.getElementById('searchPanel');
+    const toggle = document.getElementById('searchToggle');
+    panel.classList.add('open');
+    toggle.classList.add('active');
+    document.getElementById('searchInput').focus();
+  }
+});
+
+// ─── Boot ─────────────────────────────────────────────────────
+loadFeed('top', true);
+</script>
+</body>
+</html>
