@@ -1,31 +1,31 @@
 # MCP HackerNews
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server for Hacker News, built with Python + FastMCP.
+Un server [Model Context Protocol](https://modelcontextprotocol.io) per Hacker News, costruito con Python + FastMCP.
 
-Runs locally — no proxy restrictions, no API key needed.
+Gira in locale — nessuna restrizione di proxy, nessuna API key necessaria.
 
-## Tools
+## Strumenti
 
-| Tool | Description |
-|------|-------------|
-| `hn_get_stories` | Fetch stories by type: `top`, `new`, `best`, `ask`, `show`, `job` |
-| `hn_get_item` | Full item details + optional top-level comments |
-| `hn_search` | Full-text search via Algolia (sort by relevance or date) |
-| `hn_get_user` | User profile: karma, creation date, bio |
+| Strumento | Descrizione |
+|-----------|-------------|
+| `hn_get_stories` | Recupera storie per tipo: `top`, `new`, `best`, `ask`, `show`, `job` |
+| `hn_get_item` | Dettagli completi di un item + commenti di primo livello (opzionale) |
+| `hn_search` | Ricerca full-text tramite Algolia (ordina per rilevanza o data) |
+| `hn_get_user` | Profilo utente: karma, data di iscrizione, bio |
 
-## Prerequisites
+## Requisiti
 
 - Python 3.10+
 - pip
 
-## Installation
+## Installazione
 
 ```bash
 git clone https://github.com/Attilio81/MCP-HackerNews.git
 cd MCP-HackerNews
 ```
 
-**Create a virtual environment (recommended):**
+**Crea un ambiente virtuale (consigliato):**
 
 ```bash
 # macOS / Linux
@@ -37,21 +37,21 @@ python -m venv .venv
 .venv\Scripts\activate
 ```
 
-**Install dependencies:**
+**Installa le dipendenze:**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Test the server starts:**
+**Verifica che il server parta:**
 
 ```bash
 python server.py
 ```
 
-## Configure Claude Code
+## Configurazione Claude Code
 
-Add to your MCP settings file:
+Aggiungi al file di impostazioni MCP:
 
 **macOS / Linux** — `~/.claude/settings.json`
 
@@ -62,34 +62,34 @@ Add to your MCP settings file:
   "mcpServers": {
     "hackernews": {
       "command": "python3",
-      "args": ["/absolute/path/to/MCP-HackerNews/server.py"]
+      "args": ["/percorso/assoluto/MCP-HackerNews/server.py"]
     }
   }
 }
 ```
 
-> **Windows example:**
+> **Esempio Windows:**
 > ```json
 > {
 >   "mcpServers": {
 >     "hackernews": {
 >       "command": "python",
->       "args": ["C:\\Users\\YourName\\MCP-HackerNews\\server.py"]
+>       "args": ["C:\\Users\\TuoNome\\MCP-HackerNews\\server.py"]
 >     }
 >   }
 > }
 > ```
 >
-> If using a virtual environment, point to the Python inside it:
+> Se usi un ambiente virtuale, punta al Python al suo interno:
 > ```
-> C:\Users\YourName\MCP-HackerNews\.venv\Scripts\python.exe
+> C:\Users\TuoNome\MCP-HackerNews\.venv\Scripts\python.exe
 > ```
 
-Restart Claude Code after saving.
+Riavvia Claude Code dopo aver salvato.
 
-## Configure Claude Desktop
+## Configurazione Claude Desktop
 
-Add to `claude_desktop_config.json`:
+Aggiungi a `claude_desktop_config.json`:
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -99,47 +99,47 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "hackernews": {
       "command": "python",
-      "args": ["C:\\Users\\YourName\\MCP-HackerNews\\server.py"]
+      "args": ["C:\\Users\\TuoNome\\MCP-HackerNews\\server.py"]
     }
   }
 }
 ```
 
-## Examples
+## Esempi
 
 ```
-# Current front page
+# Front page attuale
 hn_get_stories(story_type="top", limit=30)
 
-# Latest Show HN projects
+# Ultimi progetti Show HN
 hn_get_stories(story_type="show", limit=20)
 
-# Search for MCP server news (most recent)
+# Cerca notizie sui server MCP (più recenti)
 hn_search(query="MCP server", tag="story", sort="date", limit=20)
 
-# Read an Ask HN thread with comments
+# Leggi un thread Ask HN con commenti
 hn_get_item(item_id=12345678, include_comments=True, max_comments=10)
 
-# Check a user's karma
+# Controlla il karma di un utente
 hn_get_user(username="pg")
 ```
 
-## API Sources
+## Sorgenti API
 
-- **Stories & Items**: [HN Firebase API](https://github.com/HackerNews/API) — official, no key needed
-- **Search**: [Algolia HN Search](https://hn.algolia.com/api) — free, no key needed
+- **Storie & Item**: [HN Firebase API](https://github.com/HackerNews/API) — ufficiale, senza chiave
+- **Ricerca**: [Algolia HN Search](https://hn.algolia.com/api) — gratuita, senza chiave
 
-## Scheduled Tasks & Automation
+## Task Schedulati & Automazione
 
-Want to run HN digests, AI reports, or alerts automatically every morning?
+Vuoi ricevere digest HN, report sull'AI o alert automatici ogni mattina?
 
-→ See [**guida-schedule-hackernews.md**](guida-schedule-hackernews.md) for a full guide on creating scheduled tasks with the Cowork scheduler that use this MCP server.
+→ Leggi [**guida-schedule-hackernews.md**](guida-schedule-hackernews.md) per una guida completa su come creare task schedulati con il Cowork scheduler che usano questo server MCP.
 
-Examples covered:
-- Daily AI digest saved as markdown
-- Show HN alert filtered by score
-- Weekly best-of-AI HTML report
+Esempi inclusi:
+- Digest AI giornaliero salvato in markdown
+- Alert Show HN filtrato per score
+- Report settimanale "best of AI" in HTML
 
-## License
+## Licenza
 
 MIT
